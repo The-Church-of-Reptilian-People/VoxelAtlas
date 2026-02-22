@@ -91,8 +91,35 @@ public record ChunkAccessor(/** The Hytale world instance */ World world) {
                 final Store<ChunkStore> store = chunk_store.getStore();
 
                 // This relies on the world using IndexedStorage
+                /*if (chunk_store.getLoader() instanceof IndexedStorageChunkLoader) {
+                    final var cache = store.getResource(IndexedStorageCache.getResourceType()); // getResourceType is removed in patch 3
+
+                    int regionX = chunkX >> 5;
+                    int regionZ = chunkZ >> 5;
+
+                    // Checks if the region file exists
+                    final IndexedStorageFile region_file = cache.getOrTryOpen(regionX, regionZ, false);
+                    if (region_file != null) {
+                        int localX = chunkX & 0x1F;
+                        int localZ = chunkZ & 0x1F;
+                        int index = ChunkUtil.indexColumn(localX, localZ);
+
+                        // Check if the chunk index exists in the region file keys
+                        if (region_file.keys().contains(index)) {
+                            return false; // It exists!
+                        }
+                    }
+                }*/
                 if (chunk_store.getLoader() instanceof IndexedStorageChunkLoader) {
-                    final var cache = store.getResource(IndexedStorageCache.getResourceType());
+                    IndexedStorageCache cache = null;
+                    try {
+                        java.lang.reflect.Field cacheField = IndexedStorageChunkLoader.class.getDeclaredField("cache");
+                        cacheField.setAccessible(true);
+                        cache = (IndexedStorageCache) cacheField.get((IndexedStorageChunkLoader) chunk_store.getLoader());
+                    } catch (Exception e) {
+                        VoxelAtlas.LOGGER.atSevere().log("[VoxelAtlas] Failed to reflect cache: " + e.getMessage());
+                        return true;
+                    }
 
                     int regionX = chunkX >> 5;
                     int regionZ = chunkZ >> 5;
